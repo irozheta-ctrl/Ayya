@@ -5,11 +5,10 @@ import {
     getDatabase,
     ref,
     set,
+    update,
     onValue,
     onDisconnect
-}
-from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
-
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyALjjBvSRi37TEVKbUTXRKRQ90e07kcNgA",
@@ -21,74 +20,39 @@ const firebaseConfig = {
     appId: "1:882276906132:web:64f21c73ebce582a447081"
 };
 
-
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+const params = new URLSearchParams(window.location.search);
+const roomId = params.get("room");
 
-const params =
-    new URLSearchParams(window.location.search);
-
-const roomId =
-    params.get("room");
-
-
-const roomText =
-    document.getElementById("roomId");
-
-const playersBox =
-    document.getElementById("players");
-
-const countText =
-    document.getElementById("count");
-
-const status =
-    document.getElementById("status");
-
+const roomText = document.getElementById("roomId");
+const dice = document.getElementById("dice");
+const rollButton = document.getElementById("rollButton");
+const turnPlayer = document.getElementById("turnPlayer");
+const status = document.getElementById("status");
 
 if (!roomId) {
-
     roomText.textContent = "BELUM ADA";
-
-    status.textContent =
-        "❌ Room ID belum tersedia.";
-
-    status.className =
-        "status error";
-
+    status.textContent = "❌ Room ID belum tersedia.";
+    status.className = "status error";
     throw new Error("Room ID tidak ditemukan.");
 }
 
-
 roomText.textContent = roomId;
 
-
-// ===============================
-// PLAYER ID
-// ===============================
-
-let playerId =
-    localStorage.getItem("savariLudoPlayerId");
-
+let playerId = localStorage.getItem("savariLudoPlayerId");
 
 if (!playerId) {
-
     playerId =
         "player_" +
-        Math.random()
-            .toString(36)
-            .substring(2, 10);
+        Math.random().toString(36).substring(2, 10);
 
     localStorage.setItem(
         "savariLudoPlayerId",
         playerId
     );
 }
-
-
-// ===============================
-// PLAYER COLOR
-// ===============================
 
 const colors = [
     "red",
@@ -97,43 +61,164 @@ const colors = [
     "yellow"
 ];
 
-const colorHex = {
-    red: "#ef4444",
-    blue: "#3b82f6",
-    green: "#22c55e",
-    yellow: "#eab308"
-};
+const playerRef = ref(
+    db,
+    `rooms/${roomId}/players/${playerId}`
+);
 
+const roomRef = ref(
+    db,
+    `rooms/${roomId}`
+);
 
-// ===============================
-// PLAYER DATA
-// ===============================
+const playersRef = ref(
+    db,
+    `rooms/${roomId}/players`
+);
 
-const playerRef =
-    ref(
-        db,
-        `rooms/${roomId}/players/${playerId}`
-    );
+let myColor = null;
 
+/* =========================
+   CEK / BUAT ROOM
+========================= */
 
-const playerData = {
-    id: playerId,
-    name: "Player",
-    connected: true,
-    joinedAt: Date.now()
-};
+onValue(
+    roomRef,
+    async (snapshot) => {
 
+        const room = snapshot.val();
 
-set(playerRef, playerData)
+        if (!room) {
 
-    .then(() => {
+            await set(roomRef, {
+                createdAt: Date.now(),
+                game: {
+                    turnIndex: 0,
+                    dice: 1,
+                    started: false
+                }
+            });
+
+            return;
+        }
+
+        if (!room.game) {
+
+            await update(roomRef, {
+                game: {
+                    turnIndex: 0,
+                    dice: 1,
+                    started: false
+                }
+            });
+        }
+    },
+    (error) => {
+
+        console.error(error);
 
         status.textContent =
-            "🟢 Firebase terhubung — Room siap";
+            "❌ Tidak bisa membaca Firebase.";
 
-    })
+        status.className = "status error";
+    }
+);
 
-    .catch((error) => {
+/* =========================
+   DAFTAR PEMAIN
+========================= */
+
+onValue(
+    playersRef,
+    async (snapshot) => {
+
+        const players = snapshot.val() || {};
+
+        const list = Object.values(players)
+            .sort(
+                (a, b) =>
+                    (a.joinedAt || 0) -
+                    (b.joinedAt || 0)
+            );
+
+        /*
+         * Maksimal 4 pemain.
+         */
+        if (
+            !players[playerId] &&
+            list.length >= 4
+        ) {
+
+            status.textContent =
+                "❌ Room sudah penuh.";
+
+            status.className =
+                "status error";
+
+            rollButton.disabled = true;
+
+            return;
+        }
+
+        /*
+         * Tentukan warna berdasarkan urutan.
+         */
+        if (players[playerId]) {
+
+            const index = list.findIndex(
+                p => p.id === playerId
+            );
+
+            myColor =
+                players[playerId].color ||
+                colors[index] ||
+                "red";
+
+        } else {
+
+            const usedColors =
+                list.map(p => p.color);
+
+            const freeColor =
+                colors.find(
+                    c => !usedColors.includes(c)
+                ) || "red";
+
+            myColor = freeColor;
+
+            const newPlayer = {
+
+                id: playerId,
+
+                name:
+                    "Player " +
+                    (list.length + 1),
+
+                color: myColor,
+
+                joinedAt: Date.now(),
+
+                connected: true
+            };
+
+            await set(
+                playerRef,
+                newPlayer
+            );
+        }
+
+        /*
+         * Tampilkan pemain di papan.
+         */
+        renderPlayers(list);
+
+        status.textContent =
+            `🟢 ${list.length}/4 pemain terhubung`;
+
+        status.className = "status";
+
+    },
+    (error) => {
 
         console.error(error);
 
@@ -143,133 +228,300 @@ set(playerRef, playerData)
 
         status.className =
             "status error";
-    });
+    }
+);
 
+/* =========================
+   RENDER PEMAIN
+========================= */
 
-onDisconnect(playerRef)
-    .remove();
+function renderPlayers(list) {
 
+    const playerElements =
+        document.querySelectorAll(".player");
 
-// ===============================
-// READ PLAYERS
-// ===============================
+    playerElements.forEach(
+        (element, index) => {
 
-const playersRef =
-    ref(
-        db,
-        `rooms/${roomId}/players`
+            const player = list[index];
+
+            const nameElement =
+                element.querySelector("div:last-child");
+
+            if (!player) {
+
+                element.style.opacity = "0.35";
+
+                if (nameElement) {
+                    nameElement.textContent =
+                        `Player ${index + 1}`;
+                }
+
+                element.classList.remove(
+                    "active"
+                );
+
+                return;
+            }
+
+            element.style.opacity = "1";
+
+            if (nameElement) {
+
+                nameElement.textContent =
+                    player.name +
+                    (
+                        player.id === playerId
+                            ? " (KAMU)"
+                            : ""
+                    );
+            }
+
+            element.classList.remove(
+                "active"
+            );
+
+            if (player.color) {
+
+                element.style.borderColor =
+                    getColor(player.color);
+            }
+        }
     );
+}
 
+/* =========================
+   GILIRAN + DADU
+========================= */
 
 onValue(
-    playersRef,
-
+    ref(db, `rooms/${roomId}/game`),
     (snapshot) => {
 
-        const players =
-            snapshot.val() || {};
+        const game =
+            snapshot.val();
 
-        const list =
-            Object.values(players);
+        if (!game) return;
 
-        countText.textContent =
-            `${list.length} / 4 PLAYERS`;
+        dice.textContent =
+            game.dice || "1";
 
+        onValue(
+            playersRef,
+            (playerSnapshot) => {
 
-        playersBox.innerHTML = "";
+                const players =
+                    Object.values(
+                        playerSnapshot.val() || {}
+                    ).sort(
+                        (a, b) =>
+                            (a.joinedAt || 0) -
+                            (b.joinedAt || 0)
+                    );
 
+                if (!players.length) return;
 
-        if (list.length === 0) {
+                const current =
+                    players[
+                        game.turnIndex %
+                        players.length
+                    ];
 
-            playersBox.innerHTML =
-                `<div class="empty">
-                    Menunggu pemain...
-                </div>`;
+                if (!current) return;
 
-            return;
-        }
+                turnPlayer.textContent =
+                    current.name;
 
+                const isMyTurn =
+                    current.id === playerId;
 
-        list
-            .sort(
-                (a, b) =>
-                    a.joinedAt - b.joinedAt
-            )
-            .forEach(
-                (player, index) => {
+                rollButton.disabled =
+                    !isMyTurn;
 
-                    const color =
-                        colors[index] || "red";
+                if (isMyTurn) {
 
-                    const div =
-                        document.createElement("div");
+                    status.textContent =
+                        "🎲 Giliran kamu — lempar dadu!";
 
-                    div.className = "player";
+                } else {
 
+                    status.textContent =
+                        `⏳ Menunggu giliran ${current.name}`;
+                }
 
-                    const dot =
-                        document.createElement("div");
+            }
+        );
+    }
+);
 
-                    dot.className = "dot";
+/* =========================
+   TOMBOL DADU
+========================= */
 
-                    dot.style.color =
-                        colorHex[color];
+rollButton.addEventListener(
+    "click",
+    async () => {
 
-                    dot.style.background =
-                        colorHex[color];
+        rollButton.disabled = true;
 
+        const gameSnapshot =
+            await new Promise(
+                resolve => {
 
-                    const name =
-                        document.createElement("div");
-
-                    name.className =
-                        "player-name";
-
-                    name.textContent =
-                        player.name || "Player";
-
-
-                    if (
-                        player.id === playerId
-                    ) {
-
-                        name.innerHTML +=
-                            ` <span class="you">(KAMU)</span>`;
-
-                    }
-
-
-                    div.appendChild(dot);
-                    div.appendChild(name);
-
-                    playersBox.appendChild(div);
+                    onValue(
+                        ref(
+                            db,
+                            `rooms/${roomId}/game`
+                        ),
+                        resolve,
+                        { onlyOnce: true }
+                    );
 
                 }
             );
 
+        const game =
+            gameSnapshot.val() || {};
 
-        if (list.length >= 4) {
+        const playersSnapshot =
+            await new Promise(
+                resolve => {
 
-            status.textContent =
-                "🟢 Room penuh — 4 pemain";
+                    onValue(
+                        playersRef,
+                        resolve,
+                        { onlyOnce: true }
+                    );
 
-        } else {
+                }
+            );
 
-            status.textContent =
-                `🟢 Menunggu pemain — ${list.length}/4`;
+        const players =
+            Object.values(
+                playersSnapshot.val() || {}
+            ).sort(
+                (a, b) =>
+                    (a.joinedAt || 0) -
+                    (b.joinedAt || 0)
+            );
 
+        if (!players.length) return;
+
+        const currentPlayer =
+            players[
+                (game.turnIndex || 0) %
+                players.length
+            ];
+
+        if (
+            !currentPlayer ||
+            currentPlayer.id !== playerId
+        ) {
+
+            return;
         }
 
-    },
+        const value =
+            Math.floor(
+                Math.random() * 6
+            ) + 1;
 
-    (error) => {
+        dice.textContent = value;
 
-        console.error(error);
+        await update(
+            ref(
+                db,
+                `rooms/${roomId}/game`
+            ),
+            {
+                dice: value
+            }
+        );
 
-        status.textContent =
-            "❌ Tidak bisa membaca database.";
+        /*
+         * Efek angka dadu.
+         */
+        let count = 0;
 
-        status.className =
-            "status error";
+        const animation =
+            setInterval(
+                () => {
+
+                    dice.textContent =
+                        Math.floor(
+                            Math.random() * 6
+                        ) + 1;
+
+                    count++;
+
+                    if (count >= 8) {
+
+                        clearInterval(
+                            animation
+                        );
+
+                        dice.textContent =
+                            value;
+                    }
+
+                },
+                70
+            );
+
+        /*
+         * Setelah dadu dilempar,
+         * giliran pindah.
+         */
+        setTimeout(
+            async () => {
+
+                const nextIndex =
+                    (
+                        (game.turnIndex || 0) +
+                        1
+                    ) % players.length;
+
+                await update(
+                    ref(
+                        db,
+                        `rooms/${roomId}/game`
+                    ),
+                    {
+                        dice: value,
+                        turnIndex: nextIndex,
+                        started: true
+                    }
+                );
+
+            },
+            900
+        );
     }
 );
+
+/* =========================
+   DISCONNECT
+========================= */
+
+onDisconnect(playerRef)
+    .remove();
+
+/* =========================
+   UTILITAS
+========================= */
+
+function getColor(color) {
+
+    const map = {
+
+        red: "#ef4444",
+
+        blue: "#3b82f6",
+
+        green: "#22c55e",
+
+        yellow: "#eab308"
+    };
+
+    return map[color] || "#a855f7";
+                        }
