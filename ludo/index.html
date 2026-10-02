@@ -1,419 +1,943 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SAVARI LUDO</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-<style>
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  <title>Savari Ludo</title>
 
-body{
-margin:0;
-min-height:100vh;
-background:radial-gradient(circle at top,#321052,#100719 55%,#050308);
-color:#fff;
-font-family:Arial,sans-serif;
-}
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-.app{
-width:min(100%,520px);
-margin:auto;
-padding:14px;
-}
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 50% 0%, #24113b 0%, #0b0712 45%, #050308 100%);
+      color: #fff;
+      font-family: Arial, Helvetica, sans-serif;
+    }
 
-.logo{
-text-align:center;
-font-size:30px;
-font-weight:900;
-letter-spacing:5px;
-color:#e879f9;
-text-shadow:0 0 10px #e879f9,0 0 25px #a855f7;
-}
+    body {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      overflow-x: hidden;
+    }
 
-.room{
-text-align:center;
-font-size:11px;
-color:#c4b5fd;
-margin:5px 0 12px;
-}
+    .game {
+      width: min(96vw, 650px);
+      padding: 14px 10px 28px;
+    }
 
-.players{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:6px;
-margin-bottom:12px;
-}
+    /* =========================
+       HEADER
+    ========================= */
 
-.player{
-padding:8px 3px;
-border:1px solid #342043;
-border-radius:12px;
-background:#120a1c;
-text-align:center;
-font-size:10px;
-transition:.2s;
-}
+    .title {
+      text-align: center;
+      margin-bottom: 12px;
+    }
 
-.player.active{
-border-color:#e879f9;
-box-shadow:0 0 12px #a855f755;
-}
+    .title h1 {
+      margin: 0;
+      font-size: clamp(24px, 7vw, 38px);
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: #fff;
+      text-shadow:
+        0 0 5px #ff2bbf,
+        0 0 15px #ff2bbf,
+        0 0 30px #8b2cff;
+    }
 
-.dot{
-width:13px;
-height:13px;
-border-radius:50%;
-margin:auto auto 5px;
-box-shadow:0 0 10px currentColor;
-}
+    .title p {
+      margin: 4px 0 0;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: #cbb9d8;
+      text-transform: uppercase;
+    }
 
-.red{background:#ef4444;color:#ef4444}
-.blue{background:#3b82f6;color:#3b82f6}
-.green{background:#22c55e;color:#22c55e}
-.yellow{background:#eab308;color:#eab308}
+    /* =========================
+       INFO ROOM
+    ========================= */
 
-.board-wrap{
-position:relative;
-width:100%;
-aspect-ratio:1;
-padding:6px;
-border:1px solid #a855f7;
-border-radius:20px;
-background:#160b22;
-box-shadow:0 0 25px #a855f744;
-}
+    .room-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      padding: 9px 12px;
+      border: 1px solid rgba(255, 255, 255, .13);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .045);
+      box-shadow: 0 0 18px rgba(255, 0, 180, .08);
+    }
 
-.board{
-position:relative;
-width:100%;
-height:100%;
-display:grid;
-grid-template-columns:repeat(15,1fr);
-grid-template-rows:repeat(15,1fr);
-overflow:hidden;
-border-radius:15px;
-background:#0c0712;
-}
+    .room-label {
+      font-size: 10px;
+      color: #a999ad;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
 
-.home{
-position:relative;
-display:flex;
-align-items:center;
-justify-content:center;
-}
+    #roomId {
+      font-weight: 800;
+      color: #fff;
+      word-break: break-all;
+    }
 
-.home.redHome{
-grid-column:1/7;
-grid-row:1/7;
-background:#ef444422;
-}
+    #status {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ff8cdd;
+      text-align: right;
+    }
 
-.home.blueHome{
-grid-column:10/16;
-grid-row:1/7;
-background:#3b82f622;
-}
+    /* =========================
+       BOARD
+    ========================= */
 
-.home.greenHome{
-grid-column:1/7;
-grid-row:10/16;
-background:#22c55e22;
-}
+    #board {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
 
-.home.yellowHome{
-grid-column:10/16;
-grid-row:10/16;
-background:#eab30822;
-}
+      display: grid;
+      grid-template-columns: repeat(15, 1fr);
+      grid-template-rows: repeat(15, 1fr);
 
-.home-box{
-width:70%;
-height:70%;
-border-radius:18px;
-background:#09050e;
-border:1px solid #ffffff22;
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:12px;
-padding:14px;
-}
+      overflow: hidden;
 
-.slot{
-border-radius:50%;
-border:2px solid #ffffff33;
-}
+      border-radius: 22px;
+      border: 2px solid rgba(255, 255, 255, .18);
 
-.slot.red{background:#ef444455}
-.slot.blue{background:#3b82f655}
-.slot.green{background:#22c55e55}
-.slot.yellow{background:#eab30855}
+      background: #09060e;
 
-.cell{
-border:1px solid #ffffff09;
-background:#17101d;
-}
+      box-shadow:
+        0 0 10px rgba(255, 0, 190, .35),
+        0 0 35px rgba(117, 0, 255, .25),
+        inset 0 0 35px rgba(255, 255, 255, .04);
+    }
 
-.center{
-grid-column:7/10;
-grid-row:7/10;
-background:conic-gradient(
-#ef4444 0 25%,
-#3b82f6 25% 50%,
-#eab308 50% 75%,
-#22c55e 75% 100%
-);
-display:flex;
-align-items:center;
-justify-content:center;
-}
+    /* =========================
+       BASIC GRID CELL
+    ========================= */
 
-.center span{
-width:48%;
-height:48%;
-border-radius:50%;
-background:#100719;
-border:2px solid #e879f9;
-box-shadow:0 0 18px #e879f9;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:8px;
-font-weight:900;
-}
+    .cell {
+      position: relative;
+      width: 100%;
+      height: 100%;
 
-.piece{
-position:absolute;
-width:5.5%;
-height:5.5%;
-border-radius:50%;
-border:2px solid #fff;
-transform:translate(-50%,-50%);
-z-index:20;
-cursor:pointer;
-box-shadow:0 0 8px currentColor,0 0 18px currentColor;
-transition:left .25s,top .25s,transform .15s;
-}
+      border: 1px solid rgba(255, 255, 255, .055);
 
-.piece:hover{
-transform:translate(-50%,-50%) scale(1.2);
-}
+      background: rgba(255, 255, 255, .025);
+    }
 
-.piece.selectable{
-animation:piecePulse .7s infinite alternate;
-}
+    /* =========================
+       PATH CELLS
+    ========================= */
 
-@keyframes piecePulse{
-from{transform:translate(-50%,-50%) scale(1)}
-to{transform:translate(-50%,-50%) scale(1.2)}
-}
+    .path-cell {
+      background:
+        linear-gradient(
+          135deg,
+          rgba(255,255,255,.075),
+          rgba(255,255,255,.025)
+        );
 
-.control{
-margin-top:12px;
-padding:14px;
-border:1px solid #39234d;
-border-radius:18px;
-background:#11091b;
-text-align:center;
-}
+      border: 1px solid rgba(255, 255, 255, .13);
 
-.turn{
-font-size:12px;
-color:#c4b5fd;
-margin-bottom:10px;
-}
+      box-shadow:
+        inset 0 0 5px rgba(255,255,255,.035);
+    }
 
-.dice{
-width:65px;
-height:65px;
-margin:auto auto 12px;
-border-radius:15px;
-background:#fff;
-color:#12091a;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:32px;
-font-weight:900;
-box-shadow:0 0 18px #ffffff55;
-}
+    .path-cell.red-start {
+      box-shadow:
+        inset 0 0 10px rgba(255, 40, 80, .55),
+        0 0 7px rgba(255, 40, 80, .2);
+    }
 
-.roll{
-width:100%;
-padding:13px;
-border:0;
-border-radius:13px;
-background:linear-gradient(135deg,#8b5cf6,#e879f9);
-color:#fff;
-font-weight:900;
-letter-spacing:2px;
-font-size:14px;
-}
+    .path-cell.blue-start {
+      box-shadow:
+        inset 0 0 10px rgba(50, 150, 255, .55),
+        0 0 7px rgba(50, 150, 255, .2);
+    }
 
-.roll:disabled{
-opacity:.35;
-}
+    .path-cell.green-start {
+      box-shadow:
+        inset 0 0 10px rgba(40, 255, 130, .5),
+        0 0 7px rgba(40, 255, 130, .2);
+    }
 
-.status{
-margin-top:10px;
-font-size:11px;
-color:#86efac;
-}
+    .path-cell.yellow-start {
+      box-shadow:
+        inset 0 0 10px rgba(255, 220, 40, .5),
+        0 0 7px rgba(255, 220, 40, .2);
+    }
 
-.error{
-color:#fca5a5;
-}
-</style>
+    /* =========================
+       HOME ZONES
+    ========================= */
+
+    .home {
+      position: relative;
+      z-index: 3;
+
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+
+      gap: 9%;
+      padding: 15%;
+
+      border: 2px solid rgba(255,255,255,.18);
+    }
+
+    .home.redHome {
+      grid-column: 1 / 7;
+      grid-row: 1 / 7;
+
+      background:
+        radial-gradient(
+          circle,
+          rgba(255, 40, 80, .27),
+          rgba(90, 5, 30, .20)
+        );
+
+      box-shadow:
+        inset 0 0 25px rgba(255, 30, 80, .2);
+    }
+
+    .home.blueHome {
+      grid-column: 10 / 16;
+      grid-row: 1 / 7;
+
+      background:
+        radial-gradient(
+          circle,
+          rgba(40, 130, 255, .28),
+          rgba(5, 25, 90, .20)
+        );
+
+      box-shadow:
+        inset 0 0 25px rgba(40, 130, 255, .2);
+    }
+
+    .home.greenHome {
+      grid-column: 1 / 7;
+      grid-row: 10 / 16;
+
+      background:
+        radial-gradient(
+          circle,
+          rgba(30, 255, 130, .25),
+          rgba(5, 80, 45, .20)
+        );
+
+      box-shadow:
+        inset 0 0 25px rgba(30, 255, 130, .2);
+    }
+
+    .home.yellowHome {
+      grid-column: 10 / 16;
+      grid-row: 10 / 16;
+
+      background:
+        radial-gradient(
+          circle,
+          rgba(255, 220, 30, .25),
+          rgba(100, 70, 0, .20)
+        );
+
+      box-shadow:
+        inset 0 0 25px rgba(255, 220, 30, .2);
+    }
+
+    .home-slot {
+      border-radius: 50%;
+
+      background: rgba(0,0,0,.28);
+
+      border: 2px solid rgba(255,255,255,.18);
+
+      box-shadow:
+        inset 0 0 10px rgba(0,0,0,.7),
+        0 0 8px rgba(255,255,255,.04);
+    }
+
+    .redHome .home-slot {
+      border-color: rgba(255, 60, 90, .55);
+    }
+
+    .blueHome .home-slot {
+      border-color: rgba(50, 150, 255, .55);
+    }
+
+    .greenHome .home-slot {
+      border-color: rgba(50, 255, 140, .55);
+    }
+
+    .yellowHome .home-slot {
+      border-color: rgba(255, 225, 50, .55);
+    }
+
+    /* =========================
+       CENTER
+    ========================= */
+
+    .center {
+      position: relative;
+      z-index: 5;
+
+      grid-column: 7 / 10;
+      grid-row: 7 / 10;
+
+      overflow: hidden;
+
+      border: 1px solid rgba(255,255,255,.18);
+
+      background:
+        conic-gradient(
+          from 45deg,
+          #ff315f 0deg 90deg,
+          #4da5ff 90deg 180deg,
+          #ffe33c 180deg 270deg,
+          #38e886 270deg 360deg
+        );
+
+      box-shadow:
+        0 0 18px rgba(255, 255, 255, .15);
+    }
+
+    .center::before {
+      content: "";
+      position: absolute;
+      inset: 16%;
+
+      border-radius: 50%;
+
+      background:
+        radial-gradient(
+          circle,
+          rgba(255,255,255,.95) 0%,
+          rgba(255,255,255,.25) 30%,
+          rgba(255,255,255,.03) 65%,
+          transparent 70%
+        );
+
+      box-shadow:
+        0 0 18px rgba(255,255,255,.7);
+    }
+
+    .center-text {
+      position: absolute;
+      inset: 0;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      font-size: clamp(8px, 2.2vw, 14px);
+      font-weight: 900;
+      letter-spacing: 1px;
+
+      color: #fff;
+
+      text-shadow:
+        0 0 6px #000,
+        0 0 10px #000;
+    }
+
+    /* =========================
+       FINISH LANES
+    ========================= */
+
+    .finish-cell {
+      position: relative;
+      z-index: 2;
+      border: 1px solid rgba(255,255,255,.10);
+    }
+
+    .finish-red {
+      background: rgba(255, 40, 80, .35);
+    }
+
+    .finish-blue {
+      background: rgba(50, 150, 255, .35);
+    }
+
+    .finish-green {
+      background: rgba(40, 255, 130, .35);
+    }
+
+    .finish-yellow {
+      background: rgba(255, 220, 40, .35);
+    }
+
+    /* =========================
+       PIECES
+    ========================= */
+
+    #pieces-layer {
+      position: absolute;
+      inset: 0;
+
+      z-index: 30;
+
+      pointer-events: none;
+    }
+
+    .piece {
+      position: absolute;
+
+      width: 5.2%;
+      height: 5.2%;
+
+      transform:
+        translate(-50%, -50%)
+        scale(1);
+
+      border-radius: 50%;
+
+      border: 2px solid rgba(255,255,255,.95);
+
+      pointer-events: auto;
+
+      cursor: pointer;
+
+      transition:
+        left .18s linear,
+        top .18s linear,
+        transform .12s ease;
+
+      z-index: 50;
+
+      box-shadow:
+        0 0 6px currentColor,
+        0 0 14px currentColor,
+        0 0 25px currentColor;
+
+      will-change: left, top, transform;
+    }
+
+    .piece:hover {
+      transform:
+        translate(-50%, -50%)
+        scale(1.15);
+    }
+
+    .piece.selectable {
+      animation: piecePulse .65s infinite alternate;
+    }
+
+    @keyframes piecePulse {
+      from {
+        transform:
+          translate(-50%, -50%)
+          scale(1);
+      }
+
+      to {
+        transform:
+          translate(-50%, -50%)
+          scale(1.22);
+        box-shadow:
+          0 0 8px currentColor,
+          0 0 20px currentColor,
+          0 0 35px currentColor;
+      }
+    }
+
+    .piece.red {
+      background:
+        radial-gradient(
+          circle at 35% 30%,
+          #ffb2c1,
+          #ff315f 40%,
+          #b8003b 100%
+        );
+      color: #ff315f;
+    }
+
+    .piece.blue {
+      background:
+        radial-gradient(
+          circle at 35% 30%,
+          #b9ddff,
+          #3d9cff 40%,
+          #0754bd 100%
+        );
+      color: #3d9cff;
+    }
+
+    .piece.green {
+      background:
+        radial-gradient(
+          circle at 35% 30%,
+          #b9ffd8,
+          #35e984 40%,
+          #07934a 100%
+        );
+      color: #35e984;
+    }
+
+    .piece.yellow {
+      background:
+        radial-gradient(
+          circle at 35% 30%,
+          #fff7b0,
+          #ffe038 40%,
+          #c28a00 100%
+        );
+      color: #ffe038;
+    }
+
+    /* =========================
+       CONTROLS
+    ========================= */
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      gap: 12px;
+
+      margin-top: 14px;
+    }
+
+    #dice {
+      width: 68px;
+      height: 68px;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      border-radius: 18px;
+
+      border: 1px solid rgba(255,255,255,.2);
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255,255,255,.12),
+          rgba(255,255,255,.035)
+        );
+
+      font-size: 36px;
+      font-weight: 900;
+
+      box-shadow:
+        0 0 18px rgba(255, 30, 190, .22),
+        inset 0 0 12px rgba(255,255,255,.05);
+    }
+
+    #rollBtn {
+      min-height: 54px;
+
+      padding: 0 24px;
+
+      border: 0;
+      border-radius: 16px;
+
+      color: #fff;
+
+      background:
+        linear-gradient(
+          135deg,
+          #ff249e,
+          #8b32ff
+        );
+
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 1px;
+
+      cursor: pointer;
+
+      box-shadow:
+        0 0 12px rgba(255, 36, 158, .45),
+        0 0 28px rgba(139, 50, 255, .25);
+    }
+
+    #rollBtn:active {
+      transform: scale(.96);
+    }
+
+    #rollBtn:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* =========================
+       PLAYERS
+    ========================= */
+
+    .players-box {
+      margin-top: 13px;
+
+      padding: 11px;
+
+      border-radius: 15px;
+
+      border: 1px solid rgba(255,255,255,.1);
+
+      background: rgba(255,255,255,.035);
+    }
+
+    .players-title {
+      margin-bottom: 8px;
+
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+
+      color: #a999ad;
+
+      text-transform: uppercase;
+    }
+
+    #players {
+      display: grid;
+
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+
+      gap: 7px;
+    }
+
+    .player {
+      min-width: 0;
+
+      padding: 8px 9px;
+
+      border-radius: 10px;
+
+      background: rgba(255,255,255,.045);
+
+      font-size: 11px;
+
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* =========================
+       MESSAGE
+    ========================= */
+
+    #message {
+      min-height: 18px;
+
+      margin-top: 10px;
+
+      text-align: center;
+
+      font-size: 12px;
+      font-weight: 700;
+
+      color: #d9c9df;
+    }
+
+    /* =========================
+       MOBILE
+    ========================= */
+
+    @media (max-width: 430px) {
+
+      .game {
+        width: 98vw;
+        padding-left: 6px;
+        padding-right: 6px;
+      }
+
+      #board {
+        border-radius: 16px;
+      }
+
+      .home {
+        gap: 7%;
+        padding: 13%;
+      }
+
+      .controls {
+        gap: 8px;
+      }
+
+      #dice {
+        width: 58px;
+        height: 58px;
+        font-size: 30px;
+      }
+
+      #rollBtn {
+        min-height: 48px;
+        padding: 0 18px;
+        font-size: 12px;
+      }
+    }
+
+  </style>
 </head>
 
 <body>
 
-<div class="app">
+  <main class="game">
 
-<div class="logo">SAVARI</div>
+    <div class="title">
+      <h1>SAVARI LUDO</h1>
+      <p>Multiplayer • Neon Edition</p>
+    </div>
 
-<div class="room">
-MULTIPLAYER LUDO • ROOM
-<strong id="roomId">---</strong>
-</div>
+    <div class="room-info">
+      <div>
+        <div class="room-label">Room</div>
+        <div id="roomId">Loading...</div>
+      </div>
 
-<div class="players">
+      <div id="status">
+        Connecting...
+      </div>
+    </div>
 
-<div class="player active" id="playerCard0">
-<div class="dot red"></div>
-<div id="playerName0">Menunggu</div>
-</div>
+    <!-- =====================================================
+         PAPAN 15 × 15
+         ===================================================== -->
 
-<div class="player" id="playerCard1">
-<div class="dot blue"></div>
-<div id="playerName1">Menunggu</div>
-</div>
+    <div id="board">
 
-<div class="player" id="playerCard2">
-<div class="dot green"></div>
-<div id="playerName2">Menunggu</div>
-</div>
+      <!-- HOME MERAH -->
+      <div class="home redHome" id="redHome">
+        <div class="home-slot" id="red-home-0"></div>
+        <div class="home-slot" id="red-home-1"></div>
+        <div class="home-slot" id="red-home-2"></div>
+        <div class="home-slot" id="red-home-3"></div>
+      </div>
 
-<div class="player" id="playerCard3">
-<div class="dot yellow"></div>
-<div id="playerName3">Menunggu</div>
-</div>
+      <!-- HOME BIRU -->
+      <div class="home blueHome" id="blueHome">
+        <div class="home-slot" id="blue-home-0"></div>
+        <div class="home-slot" id="blue-home-1"></div>
+        <div class="home-slot" id="blue-home-2"></div>
+        <div class="home-slot" id="blue-home-3"></div>
+      </div>
 
-</div>
+      <!-- HOME HIJAU -->
+      <div class="home greenHome" id="greenHome">
+        <div class="home-slot" id="green-home-0"></div>
+        <div class="home-slot" id="green-home-1"></div>
+        <div class="home-slot" id="green-home-2"></div>
+        <div class="home-slot" id="green-home-3"></div>
+      </div>
 
-<div class="board-wrap">
+      <!-- HOME KUNING -->
+      <div class="home yellowHome" id="yellowHome">
+        <div class="home-slot" id="yellow-home-0"></div>
+        <div class="home-slot" id="yellow-home-1"></div>
+        <div class="home-slot" id="yellow-home-2"></div>
+        <div class="home-slot" id="yellow-home-3"></div>
+      </div>
 
-<div class="board" id="board">
+      <!-- CENTER -->
+      <div class="center">
+        <div class="center-text">LUDO</div>
+      </div>
 
-<div class="home redHome">
-<div class="home-box">
-<div class="slot red"></div>
-<div class="slot red"></div>
-<div class="slot red"></div>
-<div class="slot red"></div>
-</div>
-</div>
+      <!-- LAYER UNTUK PION -->
+      <div id="pieces-layer"></div>
 
-<div class="home blueHome">
-<div class="home-box">
-<div class="slot blue"></div>
-<div class="slot blue"></div>
-<div class="slot blue"></div>
-<div class="slot blue"></div>
-</div>
-</div>
+    </div>
 
-<div class="home greenHome">
-<div class="home-box">
-<div class="slot green"></div>
-<div class="slot green"></div>
-<div class="slot green"></div>
-<div class="slot green"></div>
-</div>
-</div>
+    <!-- =====================================================
+         DICE + BUTTON
+         ===================================================== -->
 
-<div class="home yellowHome">
-<div class="home-box">
-<div class="slot yellow"></div>
-<div class="slot yellow"></div>
-<div class="slot yellow"></div>
-<div class="slot yellow"></div>
-</div>
-</div>
+    <div class="controls">
 
-<div class="center">
-<span>SAVARI</span>
-</div>
+      <div id="dice">🎲</div>
 
-<script>
-const board=document.getElementById("board");
+      <button id="rollBtn" type="button">
+        ROLL DICE
+      </button>
 
-const blocked=new Set([
-"1,1","2,1","3,1","4,1","5,1",
-"1,2","2,2","3,2","4,2","5,2",
-"1,3","2,3","3,3","4,3","5,3",
-"1,4","2,4","3,4","4,4","5,4",
-"1,5","2,5","3,5","4,5","5,5",
-"10,1","11,1","12,1","13,1","14,1",
-"10,2","11,2","12,2","13,2","14,2",
-"10,3","11,3","12,3","13,3","14,3",
-"10,4","11,4","12,4","13,4","14,4",
-"10,5","11,5","12,5","13,5","14,5",
-"1,10","2,10","3,10","4,10","5,10",
-"1,11","2,11","3,11","4,11","5,11",
-"1,12","2,12","3,12","4,12","5,12",
-"1,13","2,13","3,13","4,13","5,13",
-"1,14","2,14","3,14","4,14","5,14",
-"10,10","11,10","12,10","13,10","14,10",
-"10,11","11,11","12,11","13,11","14,11",
-"10,12","11,12","12,12","13,12","14,12",
-"10,13","11,13","12,13","13,13","14,13",
-"10,14","11,14","12,14","13,14","14,14"
-]);
+    </div>
 
-for(let y=1;y<=15;y++){
-for(let x=1;x<=15;x++){
+    <!-- =====================================================
+         PLAYERS
+         ===================================================== -->
 
-if(
-blocked.has(`${x},${y}`) ||
-(x>=7&&x<=9&&y>=7&&y<=9)
-) continue;
+    <div class="players-box">
 
-const cell=document.createElement("div");
-cell.className="cell";
-cell.style.gridColumn=x;
-cell.style.gridRow=y;
+      <div class="players-title">
+        Players
+      </div>
 
-board.appendChild(cell);
-}
-}
-</script>
+      <div id="players">
+        <div class="player">Menunggu pemain...</div>
+      </div>
 
-</div>
-</div>
+    </div>
 
-<div class="control">
+    <div id="message">
+      Menunggu permainan...
+    </div>
 
-<div class="turn">
-🎮 Giliran:
-<strong id="turnPlayer">Menunggu pemain</strong>
-</div>
+  </main>
 
-<div class="dice" id="dice">1</div>
+  <!-- =======================================================
+       BOARD GRID GENERATOR
+       ======================================================= -->
 
-<button class="roll" id="rollButton">
-🎲 LEMPAR DADU
-</button>
+  <script>
+    (function () {
 
-<div class="status" id="status">
-Menghubungkan...
-</div>
+      const board = document.getElementById("board");
 
-</div>
+      /*
+       * Kotak papan dibuat memakai sistem koordinat yang sama
+       * dengan posisi pion:
+       *
+       * row = 1..15
+       * col = 1..15
+       *
+       * Titik tengah kotak:
+       *
+       * left = (col - 0.5) / 15 * 100%
+       * top  = (row - 0.5) / 15 * 100%
+       */
 
-</div>
+      const blocked = new Set();
 
-<script type="module" src="./game.js"></script>
+      /*
+       * Area HOME.
+       *
+       * Merah   = baris 1-6, kolom 1-6
+       * Biru    = baris 1-6, kolom 10-15
+       * Hijau   = baris 10-15, kolom 1-6
+       * Kuning  = baris 10-15, kolom 10-15
+       *
+       * Center  = baris 7-9, kolom 7-9
+       */
+
+      for (let row = 1; row <= 15; row++) {
+        for (let col = 1; col <= 15; col++) {
+
+          const isRed =
+            row <= 6 &&
+            col <= 6;
+
+          const isBlue =
+            row <= 6 &&
+            col >= 10;
+
+          const isGreen =
+            row >= 10 &&
+            col <= 6;
+
+          const isYellow =
+            row >= 10 &&
+            col >= 10;
+
+          const isCenter =
+            row >= 7 &&
+            row <= 9 &&
+            col >= 7 &&
+            col <= 9;
+
+          if (
+            isRed ||
+            isBlue ||
+            isGreen ||
+            isYellow ||
+            isCenter
+          ) {
+            blocked.add(`${row}-${col}`);
+          }
+        }
+      }
+
+      /*
+       * Buat seluruh kotak yang bukan HOME/CENTER.
+       *
+       * Karena memakai CSS grid yang sama dengan papan,
+       * posisi visualnya akan selalu tepat.
+       */
+
+      for (let row = 1; row <= 15; row++) {
+
+        for (let col = 1; col <= 15; col++) {
+
+          if (blocked.has(`${row}-${col}`)) {
+            continue;
+          }
+
+          const cell = document.createElement("div");
+
+          cell.className = "cell";
+
+          cell.dataset.row = row;
+          cell.dataset.col = col;
+
+          cell.style.gridRow = row;
+          cell.style.gridColumn = col;
+
+          /*
+           * Kotak jalur utama diberi class path-cell.
+           *
+           * Jalur ini menggunakan area tengah papan.
+           */
+
+          const inHorizontal =
+            (row >= 7 && row <= 9);
+
+          const inVertical =
+            (col >= 7 && col <= 9);
+
+          if (inHorizontal || inVertical) {
+            cell.classList.add("path-cell");
+          }
+
+          /*
+           * Start color.
+           */
+
+          if (row === 8 && col === 2) {
+            cell.classList.add("red-start");
+          }
+
+          if (row === 2 && col === 8) {
+            cell.classList.add("blue-start");
+          }
+
+          if (row === 8 && col === 14) {
+            cell.classList.add("green-start");
+          }
+
+          if (row === 14 && col === 8) {
+            cell.classList.add("yellow-start");
+          }
+
+          board.appendChild(cell);
+        }
+      }
+
+    })();
+  </script>
+
+  <!-- =======================================================
+       GAME JAVASCRIPT
+       ======================================================= -->
+
+  <script type="module" src="./game.js"></script>
 
 </body>
-</html>
+        </html>
