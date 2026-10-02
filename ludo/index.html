@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SAVARI LUDO</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #080510;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .box {
+            width: min(92%, 420px);
+            padding: 30px 22px;
+            border: 1px solid #a855f7;
+            border-radius: 24px;
+            background: #11091c;
+            box-shadow:
+                0 0 25px rgba(168, 85, 247, .25),
+                inset 0 0 25px rgba(168, 85, 247, .05);
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: 5px;
+            color: #e879f9;
+            text-shadow:
+                0 0 8px #e879f9,
+                0 0 20px #a855f7;
+        }
+
+        .subtitle {
+            margin-top: 8px;
+            color: #aaa;
+            letter-spacing: 2px;
+        }
+
+        .room {
+            margin: 25px 0;
+            padding: 12px;
+            border-radius: 12px;
+            background: #1b1028;
+            color: #d8b4fe;
+        }
+
+        .status {
+            margin-top: 20px;
+            color: #86efac;
+        }
+
+        .error {
+            color: #fca5a5;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="box">
+
+        <div class="logo">
+            SAVARI
+        </div>
+
+        <div class="subtitle">
+            MULTIPLAYER LUDO
+        </div>
+
+        <div class="room">
+            ROOM:
+            <strong id="roomId">---</strong>
+        </div>
+
+        <div id="status" class="status">
+            Menghubungkan ke Firebase...
+        </div>
+
+    </div>
+
+
+    <script type="module">
+
+        import { initializeApp }
+        from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+
+        import {
+            getDatabase,
+            ref,
+            onValue
+        }
+        from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+
+        // ==============================
+        // FIREBASE CONFIG
+        // ==============================
+
+        const firebaseConfig = {
+
+            apiKey: "AIzaSyALjjBvSRi37TEVKbUTXRKRQ90e07kcNgA",
+
+            authDomain:
+                "savari-ludo.firebaseapp.com",
+
+            databaseURL:
+                "https://savari-ludo-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+            projectId:
+                "savari-ludo",
+
+            storageBucket:
+                "savari-ludo.firebasestorage.app",
+
+            messagingSenderId:
+                "882276906132",
+
+            appId:
+                "1:882276906132:web:64f21c73ebce582a447081"
+        };
+
+
+        // ==============================
+        // HUBUNGKAN FIREBASE
+        // ==============================
+
+        const app =
+            initializeApp(firebaseConfig);
+
+        const db =
+            getDatabase(app);
+
+
+        // ==============================
+        // AMBIL ROOM DARI URL
+        // ==============================
+
+        const params =
+            new URLSearchParams(
+                window.location.search
+            );
+
+        const roomId =
+            params.get("room");
+
+
+        document.getElementById(
+            "roomId"
+        ).textContent =
+            roomId || "BELUM ADA";
+
+
+        // ==============================
+        // TEST DATABASE
+        // ==============================
+
+        const status =
+            document.getElementById("status");
+
+
+        if (!roomId) {
+
+            status.textContent =
+                "❌ Room ID belum tersedia.";
+
+            status.className =
+                "status error";
+
+        } else {
+
+            const roomRef =
+                ref(
+                    db,
+                    "rooms/" + roomId
+                );
+
+
+            onValue(
+                roomRef,
+
+                (snapshot) => {
+
+                    status.textContent =
+                        "🟢 Firebase terhubung — Room siap";
+
+                    status.className =
+                        "status";
+
+                    console.log(
+                        "Firebase room:",
+                        snapshot.val()
+                    );
+
+                },
+
+                (error) => {
+
+                    console.error(error);
+
+                    status.textContent =
+                        "❌ Gagal terhubung ke Firebase.";
+
+                    status.className =
+                        "status error";
+
+                }
+            );
+
+        }
+
+    </script>
+
+</body>
+</html>
