@@ -1,7 +1,7 @@
 // ============================================================
 // SAVARI LUDO
-// Firebase Realtime Multiplayer
-// 15 x 15 Board / 52 Path Cells
+// Firebase Realtime Database
+// Cocok dengan index.html versi papan 15 x 15
 // ============================================================
 
 import {
@@ -12,7 +12,6 @@ import {
   getDatabase,
   ref,
   onValue,
-  set,
   update,
   runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
@@ -44,29 +43,25 @@ const db = getDatabase(app);
 const params = new URLSearchParams(location.search);
 
 const ROOM_ID =
-  params.get("room") ||
-  "DEFAULT";
-
-const roomRef = ref(db, `rooms/${ROOM_ID}`);
-
-const playersRef = ref(
-  db,
-  `rooms/${ROOM_ID}/players`
-);
-
-const gameRef = ref(
-  db,
-  `rooms/${ROOM_ID}/game`
-);
-
-const piecesRef = ref(
-  db,
-  `rooms/${ROOM_ID}/pieces`
-);
+  params.get("room") || "TEST123";
 
 
 // ============================================================
-// ELEMENT
+// FIREBASE REFERENCES
+// ============================================================
+
+const playersRef =
+  ref(db, `rooms/${ROOM_ID}/players`);
+
+const gameRef =
+  ref(db, `rooms/${ROOM_ID}/game`);
+
+const piecesRef =
+  ref(db, `rooms/${ROOM_ID}/pieces`);
+
+
+// ============================================================
+// HTML ELEMENTS
 // ============================================================
 
 const board =
@@ -93,7 +88,9 @@ const messageEl =
 const roomIdEl =
   document.getElementById("roomId");
 
-roomIdEl.textContent = ROOM_ID;
+if (roomIdEl) {
+  roomIdEl.textContent = ROOM_ID;
+}
 
 
 // ============================================================
@@ -109,7 +106,7 @@ if (!playerId) {
     "P_" +
     Math.random()
       .toString(36)
-      .substring(2, 10) +
+      .slice(2, 9) +
     "_" +
     Date.now();
 
@@ -121,7 +118,7 @@ if (!playerId) {
 
 
 // ============================================================
-// COLORS
+// WARNA
 // ============================================================
 
 const COLORS = [
@@ -133,22 +130,25 @@ const COLORS = [
 
 
 // ============================================================
-// 52 KOTAK JALUR
+// JALUR PAPAN
 //
-// Semua koordinat memakai:
-// [row, column]
+// Ini adalah loop yang benar-benar bersebelahan
+// pada papan 15 x 15 yang kita buat.
 //
-// row    = 1..15
-// column = 1..15
+// Setiap angka posisi = SATU KOTAK.
 //
-// Titik tengah kotak dihitung:
-// left = (column - 0.5) / 15 * 100
-// top  = (row - 0.5) / 15 * 100
+// 0 -> 1 -> 2 -> 3 ...
+//
+// Tidak ada perpindahan diagonal.
+// Tidak ada loncat kotak.
 // ============================================================
 
 const PATH = [
 
-  // RED START
+  // ==========================
+  // RED AREA → ATAS
+  // ==========================
+
   [8,2],
   [8,3],
   [8,4],
@@ -162,48 +162,57 @@ const PATH = [
   [3,6],
   [2,6],
   [1,6],
-  [1,7],
 
-  // TOP
+  [1,7],
   [1,8],
   [1,9],
+  [1,10],
 
-  [2,9],
-  [3,9],
-  [4,9],
-  [5,9],
-  [6,9],
+  // ==========================
+  // ATAS → KANAN
+  // ==========================
 
-  [7,10],
+  [2,10],
+  [3,10],
+  [4,10],
+  [5,10],
+  [6,10],
 
-  // RIGHT
-  [8,10],
-  [8,11],
-  [8,12],
-  [8,13],
-  [8,14],
+  [6,11],
+  [6,12],
+  [6,13],
+  [6,14],
+  [6,15],
 
+  [7,15],
   [8,15],
-
   [9,15],
+  [10,15],
 
-  [9,14],
-  [9,13],
-  [9,12],
-  [9,11],
-  [9,10],
+  // ==========================
+  // KANAN → BAWAH
+  // ==========================
 
-  [10,9],
-  [11,9],
-  [12,9],
-  [13,9],
-  [14,9],
+  [10,14],
+  [10,13],
+  [10,12],
+  [10,11],
+  [10,10],
+
+  [11,10],
+  [12,10],
+  [13,10],
+  [14,10],
+  [15,10],
+
   [15,9],
-
-  // BOTTOM
   [15,8],
   [15,7],
   [15,6],
+
+  // ==========================
+  // BAWAH → KIRI
+  // ==========================
 
   [14,6],
   [13,6],
@@ -211,78 +220,38 @@ const PATH = [
   [11,6],
   [10,6],
 
-  [9,5],
-  [9,4],
-  [9,3],
-  [9,2],
-  [9,1],
+  [10,5],
+  [10,4],
+  [10,3],
+  [10,2],
+  [10,1],
 
-  // BACK TO RED
+  [9,1],
   [8,1]
 ];
 
 
-// Pastikan tepat 52
+// ============================================================
+// CEK PATH
+// ============================================================
+
 console.log(
-  "[LUDO] PATH:",
-  PATH.length,
-  "cells"
+  "[SAVARI LUDO] Jumlah kotak:",
+  PATH.length
 );
 
 
 // ============================================================
-// TITIK MULAI WARNA
+// START POSITION
+//
+// 4 warna berjarak sama pada loop.
 // ============================================================
 
 const START = {
-
   red: 0,
-
-  blue: 13,
-
-  green: 26,
-
-  yellow: 39
-
-};
-
-
-// ============================================================
-// POSISI HOME
-//
-// row,column
-// ============================================================
-
-const HOME = {
-
-  red: [
-    [3,3],
-    [5,3],
-    [3,5],
-    [5,5]
-  ],
-
-  blue: [
-    [3,11],
-    [5,11],
-    [3,13],
-    [5,13]
-  ],
-
-  green: [
-    [11,3],
-    [13,3],
-    [11,5],
-    [13,5]
-  ],
-
-  yellow: [
-    [11,11],
-    [13,11],
-    [11,13],
-    [13,13]
-  ]
-
+  blue: 14,
+  green: 28,
+  yellow: 42
 };
 
 
@@ -292,72 +261,142 @@ const HOME = {
 
 let myColor = null;
 
-let currentGame = {
-  turn: "red",
-  dice: 0,
-  rolling: false,
-  winner: null
-};
-
 let players = {};
 
 let pieces = {};
 
 let pieceElements = {};
 
+let game = {
+  turn: "red",
+  dice: 0,
+  winner: null
+};
+
+let previousPieces = null;
+
+let animating = false;
+
+let rolling = false;
+
 
 // ============================================================
-// UTIL
+// DICE
 // ============================================================
 
-function randomName() {
+const DICE = {
+  1: "⚀",
+  2: "⚁",
+  3: "⚂",
+  4: "⚃",
+  5: "⚄",
+  6: "⚅"
+};
 
-  return "Player-" +
-    playerId
-      .replace("P_", "")
-      .substring(0, 4)
-      .toUpperCase();
+
+// ============================================================
+// HELPER
+// ============================================================
+
+function sleep(ms) {
+  return new Promise(resolve =>
+    setTimeout(resolve, ms)
+  );
+}
+
+
+function setMessage(text) {
+
+  if (messageEl) {
+    messageEl.textContent = text;
+  }
 
 }
 
 
-function cellPercent(row, col) {
+// ============================================================
+// GRID → PIXEL
+//
+// Ini adalah sistem koordinat yang sama dengan index.html.
+//
+// Jadi pion selalu berada tepat di tengah kotak.
+// ============================================================
+
+function gridToPercent(row, col) {
 
   return {
-
     left:
       ((col - 0.5) / 15) * 100,
 
     top:
       ((row - 0.5) / 15) * 100
+  };
+
+}
+
+
+// ============================================================
+// HOME SLOT → KOORDINAT BOARD
+//
+// INI BAGIAN PENTING.
+//
+// Kita TIDAK menebak posisi HOME.
+//
+// Kita mengambil posisi asli dari:
+// #red-home-0
+// #red-home-1
+// dst.
+//
+// Jadi pion akan tepat di atas lingkaran HOME.
+// ============================================================
+
+function getHomePosition(color, index) {
+
+  const slot =
+    document.getElementById(
+      `${color}-home-${index}`
+    );
+
+  if (!slot || !board) {
+
+    return {
+      left: 0,
+      top: 0
+    };
+
+  }
+
+  const boardRect =
+    board.getBoundingClientRect();
+
+  const slotRect =
+    slot.getBoundingClientRect();
+
+  const x =
+    slotRect.left +
+    slotRect.width / 2 -
+    boardRect.left;
+
+  const y =
+    slotRect.top +
+    slotRect.height / 2 -
+    boardRect.top;
+
+  return {
+
+    left:
+      (x / boardRect.width) * 100,
+
+    top:
+      (y / boardRect.height) * 100
 
   };
 
 }
 
 
-function sleep(ms) {
-
-  return new Promise(
-    resolve => setTimeout(resolve, ms)
-  );
-
-}
-
-
 // ============================================================
-// PIECE ID
-// ============================================================
-
-function makePieceId(color, index) {
-
-  return `${color}_${index}`;
-
-}
-
-
-// ============================================================
-// CREATE PIECE ELEMENT
+// CREATE PIECE
 // ============================================================
 
 function createPiece(
@@ -370,143 +409,272 @@ function createPiece(
     return pieceElements[pieceId];
   }
 
-  const piece =
+  const el =
     document.createElement("div");
 
-  piece.className =
+  el.className =
     `piece ${color}`;
 
-  piece.dataset.piece =
+  el.dataset.pieceId =
     pieceId;
 
-  piece.dataset.color =
+  el.dataset.color =
     color;
 
-  piece.dataset.index =
+  el.dataset.index =
     index;
 
-  piece.title =
-    `${color.toUpperCase()} ${index + 1}`;
-
-  piece.addEventListener(
+  el.addEventListener(
     "click",
     () => {
 
-      movePiece(
+      selectPiece(
         pieceId
       );
 
     }
   );
 
-  piecesLayer.appendChild(piece);
+  piecesLayer.appendChild(el);
 
   pieceElements[pieceId] =
-    piece;
+    el;
 
-  return piece;
+  return el;
 
 }
 
 
 // ============================================================
-// SET PIECE POSITION
+// GET POSITION
+//
+// position -1 = HOME
+// position 0..55 = jalur
+// position 56 = FINISH
 // ============================================================
 
-function setPiecePosition(
+function getPosition(
+  color,
+  index,
+  position
+) {
+
+  /*
+   * HOME
+   */
+
+  if (
+    position === undefined ||
+    position < 0
+  ) {
+
+    return getHomePosition(
+      color,
+      index
+    );
+
+  }
+
+  /*
+   * FINISH
+   */
+
+  if (
+    position >= PATH.length
+  ) {
+
+    return gridToPercent(
+      8,
+      8
+    );
+
+  }
+
+  /*
+   * JALUR
+   */
+
+  const start =
+    START[color];
+
+  const pathIndex =
+    (start + position) %
+    PATH.length;
+
+  const [row, col] =
+    PATH[pathIndex];
+
+  return gridToPercent(
+    row,
+    col
+  );
+
+}
+
+
+// ============================================================
+// MOVE ELEMENT TO POSITION
+// ============================================================
+
+function moveElement(
   pieceId,
   color,
   index,
   position,
-  animate = false
+  animate = true
 ) {
 
-  const piece =
+  const el =
+    pieceElements[pieceId] ||
     createPiece(
       pieceId,
       color,
       index
     );
 
-  let row;
-  let col;
-
-  /*
-   * -1 = HOME
-   */
-
-  if (
-    position === undefined ||
-    position === null ||
-    position < 0
-  ) {
-
-    [row, col] =
-      HOME[color][index];
-
-  }
-
-  /*
-   * 0..51 = PATH
-   */
-
-  else if (
-    position >= 0 &&
-    position < PATH.length
-  ) {
-
-    [row, col] =
-      PATH[
-        (START[color] + position) %
-        PATH.length
-      ];
-
-  }
-
-  /*
-   * 52 = FINISH
-   */
-
-  else {
-
-    /*
-     * Finish ditaruh di tengah.
-     */
-
-    row = 8;
-    col = 8;
-
-  }
-
   const pos =
-    cellPercent(
-      row,
-      col
+    getPosition(
+      color,
+      index,
+      position
     );
 
   if (animate) {
 
-    piece.style.transition =
+    el.style.transition =
       "left .18s linear, top .18s linear, transform .12s ease";
 
   } else {
 
-    piece.style.transition =
+    el.style.transition =
       "none";
 
   }
 
-  piece.style.left =
+  el.style.left =
     `${pos.left}%`;
 
-  piece.style.top =
+  el.style.top =
     `${pos.top}%`;
 
 }
 
 
 // ============================================================
-// RENDER ALL PIECES
+// INITIALIZE 16 PION
+// ============================================================
+
+function createAllPieces() {
+
+  COLORS.forEach(
+    color => {
+
+      for (
+        let index = 0;
+        index < 4;
+        index++
+      ) {
+
+        const id =
+          `${color}_${index}`;
+
+        createPiece(
+          id,
+          color,
+          index
+        );
+
+        /*
+         * LANGSUNG TAMPIL DI HOME.
+         */
+
+        moveElement(
+          id,
+          color,
+          index,
+          -1,
+          false
+        );
+
+      }
+
+    }
+  );
+
+}
+
+
+// ============================================================
+// INITIALIZE FIREBASE PIECES
+// ============================================================
+
+async function initializePieces() {
+
+  await runTransaction(
+    piecesRef,
+    current => {
+
+      /*
+       * Kalau sudah ada,
+       * jangan hapus posisi pemain.
+       */
+
+      if (
+        current &&
+        Object.keys(current).length >= 16
+      ) {
+
+        return current;
+
+      }
+
+      const result =
+        current || {};
+
+      COLORS.forEach(
+        color => {
+
+          for (
+            let index = 0;
+            index < 4;
+            index++
+          ) {
+
+            const id =
+              `${color}_${index}`;
+
+            if (!result[id]) {
+
+              result[id] = {
+
+                id,
+
+                color,
+
+                index,
+
+                position:
+                  -1
+
+              };
+
+            }
+
+          }
+
+        }
+      );
+
+      return result;
+
+    }
+  );
+
+}
+
+
+// ============================================================
+// RENDER INITIAL PIECES
 // ============================================================
 
 function renderPieces(
@@ -521,45 +689,38 @@ function renderPieces(
     data;
 
   Object.entries(
-    pieces
+    data
   ).forEach(
-    ([pieceId, pieceData]) => {
+    ([id, piece]) => {
 
-      if (!pieceData) {
+      if (!piece) {
         return;
       }
 
-      const color =
-        pieceData.color;
-
-      const index =
-        Number(pieceData.index);
-
-      const position =
-        Number(pieceData.position ?? -1);
-
-      setPiecePosition(
-        pieceId,
-        color,
-        index,
-        position,
-        true
+      moveElement(
+        id,
+        piece.color,
+        Number(piece.index),
+        Number(
+          piece.position ?? -1
+        ),
+        false
       );
 
     }
   );
 
-  updateSelectablePieces();
+  updateSelectable();
 
 }
 
 
 // ============================================================
-// ANIMATE ONE STEP
+// ANIMATE PIECE
 // ============================================================
 
-async function animateOneStep(
-  pieceId,
+async function animatePiece(
+  id,
   color,
   index,
   from,
@@ -567,13 +728,13 @@ async function animateOneStep(
 ) {
 
   /*
-   * Home -> start
+   * HOME → START
    */
 
   if (from < 0) {
 
-    setPiecePosition(
-      pieceId,
+    moveElement(
+      id,
       color,
       index,
       to,
@@ -586,27 +747,31 @@ async function animateOneStep(
   }
 
   /*
-   * Normal movement
+   * Gerak satu kotak demi satu kotak.
    */
 
-  let position =
+  const direction =
+    to > from ? 1 : -1;
+
+  let current =
     from;
 
   while (
-    position < to
+    current !== to
   ) {
 
-    position++;
+    current +=
+      direction;
 
-    setPiecePosition(
-      pieceId,
+    moveElement(
+      id,
       color,
       index,
-      position,
+      current,
       true
     );
 
-    await sleep(210);
+    await sleep(190);
 
   }
 
@@ -614,41 +779,50 @@ async function animateOneStep(
 
 
 // ============================================================
-// SYNC PIECES DENGAN ANIMASI
+// SYNC DARI FIREBASE
 // ============================================================
 
-async function syncPieceMovement(
-  oldPieces,
+async function syncPieces(
   newPieces
 ) {
 
-  if (!oldPieces) {
+  if (!previousPieces) {
+
     renderPieces(
       newPieces
     );
+
+    previousPieces =
+      JSON.parse(
+        JSON.stringify(newPieces)
+      );
+
     return;
+
   }
 
   for (
-    const [pieceId, newData]
-    of Object.entries(newPieces || {})
+    const [id, newPiece]
+    of Object.entries(
+      newPieces
+    )
   ) {
 
-    const oldData =
-      oldPieces[pieceId];
-
-    if (!newData) {
+    if (!newPiece) {
       continue;
     }
 
+    const oldPiece =
+      previousPieces[id];
+
     const oldPosition =
       Number(
-        oldData?.position ?? -1
+        oldPiece?.position ?? -1
       );
 
     const newPosition =
       Number(
-        newData?.position ?? -1
+        newPiece.position ?? -1
       );
 
     if (
@@ -660,31 +834,41 @@ async function syncPieceMovement(
 
     }
 
-    await animateOneStep(
-      pieceId,
-      newData.color,
-      Number(newData.index),
+    await animatePiece(
+      id,
+      newPiece.color,
+      Number(newPiece.index),
       oldPosition,
       newPosition
     );
 
   }
 
+  pieces =
+    newPieces;
+
+  previousPieces =
+    JSON.parse(
+      JSON.stringify(newPieces)
+    );
+
+  updateSelectable();
+
 }
 
 
 // ============================================================
-// UPDATE SELECTABLE
+// SELECTABLE PIECES
 // ============================================================
 
-function updateSelectablePieces() {
+function updateSelectable() {
 
-  Object.entries(
+  Object.values(
     pieceElements
   ).forEach(
-    ([pieceId, element]) => {
+    el => {
 
-      element.classList.remove(
+      el.classList.remove(
         "selectable"
       );
 
@@ -696,15 +880,15 @@ function updateSelectablePieces() {
   }
 
   if (
-    currentGame.turn !==
+    game.turn !==
     myColor
   ) {
     return;
   }
 
   if (
-    !currentGame.dice ||
-    currentGame.dice <= 0
+    !game.dice ||
+    game.dice <= 0
   ) {
     return;
   }
@@ -712,10 +896,10 @@ function updateSelectablePieces() {
   Object.entries(
     pieces
   ).forEach(
-    ([pieceId, data]) => {
+    ([id, piece]) => {
 
       if (
-        data.color !==
+        piece.color !==
         myColor
       ) {
         return;
@@ -723,37 +907,37 @@ function updateSelectablePieces() {
 
       const position =
         Number(
-          data.position ?? -1
+          piece.position ?? -1
         );
 
       /*
-       * Home hanya bisa keluar
-       * jika mendapat angka 6.
+       * Finish
+       */
+
+      if (
+        position >= PATH.length
+      ) {
+        return;
+      }
+
+      /*
+       * HOME hanya keluar
+       * kalau dadu 6.
        */
 
       if (
         position < 0 &&
-        currentGame.dice !== 6
+        game.dice !== 6
       ) {
         return;
       }
 
-      /*
-       * Sudah finish.
-       */
+      const el =
+        pieceElements[id];
 
-      if (
-        position >= 52
-      ) {
-        return;
-      }
+      if (el) {
 
-      const element =
-        pieceElements[pieceId];
-
-      if (element) {
-
-        element.classList.add(
+        el.classList.add(
           "selectable"
         );
 
@@ -766,33 +950,45 @@ function updateSelectablePieces() {
 
 
 // ============================================================
-// MOVE PIECE
+// CLICK PION
 // ============================================================
 
-async function movePiece(
+async function selectPiece(
   pieceId
 ) {
+
+  if (animating) {
+    return;
+  }
 
   if (!myColor) {
     return;
   }
 
   if (
-    currentGame.turn !==
+    game.turn !==
     myColor
   ) {
+
+    setMessage(
+      `Sekarang giliran ${game.turn.toUpperCase()}.`
+    );
+
     return;
+
   }
 
   const dice =
-    Number(
-      currentGame.dice
+    Number(game.dice || 0);
+
+  if (!dice) {
+
+    setMessage(
+      "Lempar dadu terlebih dahulu."
     );
 
-  if (
-    dice <= 0
-  ) {
     return;
+
   }
 
   const piece =
@@ -809,7 +1005,7 @@ async function movePiece(
     return;
   }
 
-  const oldPosition =
+  const current =
     Number(
       piece.position ?? -1
     );
@@ -818,140 +1014,137 @@ async function movePiece(
    * HOME
    */
 
-  if (
-    oldPosition < 0
-  ) {
+  if (current < 0) {
 
-    if (
-      dice !== 6
-    ) {
+    if (dice !== 6) {
 
       setMessage(
-        "Pion keluar dari rumah hanya dengan angka 6."
+        "Pion hanya bisa keluar jika mendapat angka 6."
       );
 
       return;
 
     }
 
-    /*
-     * Keluar ke posisi 0.
-     */
-
-    await set(
-      ref(
-        db,
-        `rooms/${ROOM_ID}/pieces/${pieceId}/position`
-      ),
+    await movePieceFirebase(
+      pieceId,
       0
     );
 
-    await finishTurn(
-      dice === 6
-    );
-
     return;
+
   }
 
   /*
-   * SUDAH FINISH
+   * FINISH
    */
 
   if (
-    oldPosition >= 52
+    current >= PATH.length
   ) {
     return;
   }
 
-  const newPosition =
-    oldPosition + dice;
+  const target =
+    current + dice;
 
   /*
-   * Jika melewati 52,
-   * tidak boleh bergerak.
+   * Jangan melewati finish.
    */
 
   if (
-    newPosition > 52
+    target > PATH.length
   ) {
 
     setMessage(
-      "Langkah melebihi garis finish."
+      "Jumlah langkah melewati garis finish."
     );
 
     return;
 
   }
 
-  /*
-   * UPDATE POSISI KE FIREBASE.
-   */
-
-  await set(
-    ref(
-      db,
-      `rooms/${ROOM_ID}/pieces/${pieceId}/position`
-    ),
-    newPosition
-  );
-
-  /*
-   * 52 = FINISH
-   */
-
-  if (
-    newPosition === 52
-  ) {
-
-    setMessage(
-      `${myColor.toUpperCase()} berhasil finish!`
-    );
-
-  }
-
-  /*
-   * Jika 6 dapat giliran lagi.
-   */
-
-  await finishTurn(
-    dice === 6
+  await movePieceFirebase(
+    pieceId,
+    target
   );
 
 }
 
 
 // ============================================================
-// FINISH TURN
+// MOVE TO FIREBASE
 // ============================================================
 
-async function finishTurn(
-  extraTurn
+async function movePieceFirebase(
+  pieceId,
+  target
 ) {
 
-  if (!myColor) {
-    return;
+  animating = true;
+
+  try {
+
+    await update(
+      ref(
+        db,
+        `rooms/${ROOM_ID}/pieces/${pieceId}`
+      ),
+      {
+        position:
+          target
+      }
+    );
+
+    /*
+     * Firebase listener akan
+     * menjalankan animasinya.
+     */
+
+    await sleep(
+      Math.max(
+        300,
+        Number(game.dice || 1) * 200
+      )
+    );
+
+    /*
+     * 6 = giliran lagi.
+     */
+
+    const extra =
+      Number(game.dice) === 6;
+
+    const next =
+      extra
+        ? myColor
+        : nextColor(myColor);
+
+    await update(
+      gameRef,
+      {
+        turn:
+          next,
+
+        dice:
+          0
+      }
+    );
+
+  } catch (error) {
+
+    console.error(
+      "[LUDO MOVE ERROR]",
+      error
+    );
+
+    setMessage(
+      "Gagal memindahkan pion."
+    );
+
   }
 
-  const nextTurn =
-    extraTurn
-      ? myColor
-      : getNextColor(
-          myColor
-        );
-
-  await update(
-    gameRef,
-    {
-      turn:
-        nextTurn,
-
-      dice:
-        0,
-
-      rolling:
-        false
-    }
-  );
+  animating = false;
 
 }
 
@@ -960,14 +1153,12 @@ async function finishTurn(
 // NEXT COLOR
 // ============================================================
 
-function getNextColor(
+function nextColor(
   color
 ) {
 
   const index =
-    COLORS.indexOf(
-      color
-    );
+    COLORS.indexOf(color);
 
   return COLORS[
     (index + 1) %
@@ -978,158 +1169,10 @@ function getNextColor(
 
 
 // ============================================================
-// DICE
-// ============================================================
-
-const diceFaces = {
-
-  1: "⚀",
-  2: "⚁",
-  3: "⚂",
-  4: "⚃",
-  5: "⚄",
-  6: "⚅"
-
-};
-
-
-let rollingLocal =
-  false;
-
-
-// ============================================================
-// ROLL DICE
-// ============================================================
-
-async function rollDice() {
-
-  if (rollingLocal) {
-    return;
-  }
-
-  if (!myColor) {
-
-    setMessage(
-      "Kamu belum mendapat warna pemain."
-    );
-
-    return;
-
-  }
-
-  if (
-    currentGame.turn !==
-    myColor
-  ) {
-
-    setMessage(
-      `Sekarang giliran ${currentGame.turn.toUpperCase()}.`
-    );
-
-    return;
-
-  }
-
-  if (
-    currentGame.dice > 0
-  ) {
-
-    setMessage(
-      "Pilih pion terlebih dahulu."
-    );
-
-    return;
-
-  }
-
-  rollingLocal =
-    true;
-
-  rollBtn.disabled =
-    true;
-
-  /*
-   * Animasi dadu lokal.
-   */
-
-  for (
-    let i = 0;
-    i < 8;
-    i++
-  ) {
-
-    const random =
-      Math.floor(
-        Math.random() * 6
-      ) + 1;
-
-    diceEl.textContent =
-      diceFaces[random];
-
-    await sleep(70);
-
-  }
-
-  const result =
-    Math.floor(
-      Math.random() * 6
-    ) + 1;
-
-  diceEl.textContent =
-    diceFaces[result];
-
-  /*
-   * Firebase menjadi sumber utama.
-   */
-
-  await update(
-    gameRef,
-    {
-      dice:
-        result,
-
-      rolling:
-        false
-    }
-  );
-
-  rollingLocal =
-    false;
-
-  rollBtn.disabled =
-    false;
-
-}
-
-
-// ============================================================
-// BUTTON
-// ============================================================
-
-if (rollBtn) {
-
-  rollBtn.addEventListener(
-    "click",
-    rollDice
-  );
-
-}
-
-
-// ============================================================
-// JOIN ROOM
+// JOIN PLAYER
 // ============================================================
 
 async function joinRoom() {
-
-  statusEl.textContent =
-    "Joining room...";
-
-  const playerRef =
-    ref(
-      db,
-      `rooms/${ROOM_ID}/players/${playerId}`
-    );
 
   await runTransaction(
     playersRef,
@@ -1139,8 +1182,7 @@ async function joinRoom() {
         current || {};
 
       /*
-       * Kalau player sudah ada,
-       * pertahankan warna.
+       * Player sudah ada.
        */
 
       if (
@@ -1152,31 +1194,32 @@ async function joinRoom() {
       }
 
       /*
-       * Cari warna kosong.
+       * Warna yang sudah dipakai.
        */
 
-      const usedColors =
+      const used =
         Object.values(
           data
-        )
-        .map(
+        ).map(
           player =>
             player.color
         );
 
-      const freeColor =
+      /*
+       * Cari warna kosong.
+       */
+
+      const color =
         COLORS.find(
-          color =>
-            !usedColors.includes(
-              color
-            )
+          c =>
+            !used.includes(c)
         );
 
       /*
        * Room penuh.
        */
 
-      if (!freeColor) {
+      if (!color) {
         return data;
       }
 
@@ -1186,10 +1229,12 @@ async function joinRoom() {
           playerId,
 
         name:
-          randomName(),
+          "Player-" +
+          playerId
+            .slice(-4)
+            .toUpperCase(),
 
-        color:
-          freeColor,
+        color,
 
         joinedAt:
           Date.now()
@@ -1201,136 +1246,11 @@ async function joinRoom() {
     }
   );
 
-  /*
-   * Ambil data player sendiri.
-   */
-
-  onValue(
-    playerRef,
-    snapshot => {
-
-      const data =
-        snapshot.val();
-
-      if (data) {
-
-        myColor =
-          data.color;
-
-        statusEl.textContent =
-          `Kamu: ${myColor.toUpperCase()}`;
-
-        updateSelectablePieces();
-
-      }
-
-    }
-  );
-
 }
 
 
 // ============================================================
-// INITIALIZE GAME
-// ============================================================
-
-async function initializeGame() {
-
-  /*
-   * Buat room/game jika belum ada.
-   */
-
-  await runTransaction(
-    gameRef,
-    current => {
-
-      if (current) {
-        return current;
-      }
-
-      return {
-
-        turn:
-          "red",
-
-        dice:
-          0,
-
-        rolling:
-          false,
-
-        winner:
-          null
-
-      };
-
-    }
-  );
-
-  /*
-   * Buat 16 pion jika belum ada.
-   */
-
-  await runTransaction(
-    piecesRef,
-    current => {
-
-      if (
-        current &&
-        Object.keys(current).length
-      ) {
-
-        return current;
-
-      }
-
-      const initial =
-        {};
-
-      COLORS.forEach(
-        color => {
-
-          for (
-            let i = 0;
-            i < 4;
-            i++
-          ) {
-
-            const id =
-              makePieceId(
-                color,
-                i
-              );
-
-            initial[id] = {
-
-              id,
-
-              color,
-
-              index:
-                i,
-
-              position:
-                -1
-
-            };
-
-          }
-
-        }
-      );
-
-      return initial;
-
-    }
-  );
-
-}
-
-
-// ============================================================
-// PLAYERS LISTENER
+// PLAYER LISTENER
 // ============================================================
 
 onValue(
@@ -1338,30 +1258,28 @@ onValue(
   snapshot => {
 
     players =
-      snapshot.val() ||
-      {};
+      snapshot.val() || {};
 
     renderPlayers();
 
-    /*
-     * Cek apakah player sudah
-     * mendapatkan warna.
-     */
-
-    const mine =
+    const me =
       players[playerId];
 
-    if (mine) {
+    if (me) {
 
       myColor =
-        mine.color;
+        me.color;
 
-      statusEl.textContent =
-        `Kamu: ${myColor.toUpperCase()}`;
+      if (statusEl) {
+
+        statusEl.textContent =
+          `Kamu: ${myColor.toUpperCase()}`;
+
+      }
 
     }
 
-    updateSelectablePieces();
+    updateSelectable();
 
   }
 );
@@ -1373,51 +1291,39 @@ onValue(
 
 function renderPlayers() {
 
+  if (!playersEl) {
+    return;
+  }
+
   playersEl.innerHTML =
     "";
 
-  const entries =
-    Object.values(
-      players
-    );
+  const list =
+    Object.values(players);
 
-  if (!entries.length) {
+  if (!list.length) {
 
-    const empty =
-      document.createElement(
-        "div"
-      );
-
-    empty.className =
-      "player";
-
-    empty.textContent =
-      "Menunggu pemain...";
-
-    playersEl.appendChild(
-      empty
-    );
+    playersEl.innerHTML =
+      `<div class="player">Menunggu pemain...</div>`;
 
     return;
 
   }
 
-  entries.forEach(
+  list.forEach(
     player => {
 
-      const div =
-        document.createElement(
-          "div"
-        );
+      const el =
+        document.createElement("div");
 
-      div.className =
+      el.className =
         "player";
 
-      div.textContent =
-        `${getColorEmoji(player.color)} ${player.name} • ${player.color}`;
+      el.textContent =
+        `${emoji(player.color)} ${player.name}`;
 
       playersEl.appendChild(
-        div
+        el
       );
 
     }
@@ -1426,28 +1332,21 @@ function renderPlayers() {
 }
 
 
-// ============================================================
-// COLOR EMOJI
-// ============================================================
+function emoji(color) {
 
-function getColorEmoji(
-  color
-) {
+  if (color === "red")
+    return "🔴";
 
-  const icons = {
+  if (color === "blue")
+    return "🔵";
 
-    red: "🔴",
+  if (color === "green")
+    return "🟢";
 
-    blue: "🔵",
+  if (color === "yellow")
+    return "🟡";
 
-    green: "🟢",
-
-    yellow: "🟡"
-
-  };
-
-  return icons[color] ||
-    "⚪";
+  return "⚪";
 
 }
 
@@ -1467,7 +1366,7 @@ onValue(
       return;
     }
 
-    currentGame =
+    game =
       data;
 
     const dice =
@@ -1478,7 +1377,7 @@ onValue(
     if (dice > 0) {
 
       diceEl.textContent =
-        diceFaces[dice];
+        DICE[dice];
 
     } else {
 
@@ -1489,7 +1388,7 @@ onValue(
 
     updateTurn();
 
-    updateSelectablePieces();
+    updateSelectable();
 
   }
 );
@@ -1498,9 +1397,6 @@ onValue(
 // ============================================================
 // PIECES LISTENER
 // ============================================================
-
-let previousPieces =
-  null;
 
 onValue(
   piecesRef,
@@ -1513,47 +1409,9 @@ onValue(
       return;
     }
 
-    /*
-     * Pertama kali:
-     * langsung tampilkan.
-     */
-
-    if (!previousPieces) {
-
-      pieces =
-        data;
-
-      renderPieces(
-        data
-      );
-
-      previousPieces =
-        JSON.parse(
-          JSON.stringify(data)
-        );
-
-      return;
-
-    }
-
-    /*
-     * Pergerakan selanjutnya
-     */
-
-    pieces =
-      data;
-
-    await syncPieceMovement(
-      previousPieces,
+    await syncPieces(
       data
     );
-
-    previousPieces =
-      JSON.parse(
-        JSON.stringify(data)
-      );
-
-    updateSelectablePieces();
 
   }
 );
@@ -1565,40 +1423,42 @@ onValue(
 
 function updateTurn() {
 
-  if (!currentGame) {
-    return;
-  }
-
   const turn =
-    currentGame.turn ||
+    game.turn ||
     "red";
 
   if (
-    turn === myColor
+    statusEl
   ) {
 
-    statusEl.textContent =
-      `Giliran kamu • ${turn.toUpperCase()}`;
+    if (
+      turn === myColor
+    ) {
 
-    statusEl.style.color =
-      "#ff8cdd";
+      statusEl.textContent =
+        `Giliran kamu • ${turn.toUpperCase()}`;
 
-  } else {
+      statusEl.style.color =
+        "#ff8cdd";
 
-    statusEl.textContent =
-      `Giliran ${turn.toUpperCase()}`;
+    } else {
 
-    statusEl.style.color =
-      "#aaa";
+      statusEl.textContent =
+        `Giliran ${turn.toUpperCase()}`;
+
+      statusEl.style.color =
+        "#aaa";
+
+    }
 
   }
 
   if (
-    currentGame.dice
+    game.dice
   ) {
 
     setMessage(
-      `${turn.toUpperCase()} mendapat ${currentGame.dice}. Pilih pion.`
+      `${turn.toUpperCase()} mendapat ${game.dice}. Pilih pion.`
     );
 
   } else {
@@ -1613,55 +1473,212 @@ function updateTurn() {
 
 
 // ============================================================
-// MESSAGE
+// ROLL DICE
 // ============================================================
 
-function setMessage(
-  text
-) {
+if (rollBtn) {
 
-  if (messageEl) {
-    messageEl.textContent =
-      text;
-  }
+  rollBtn.addEventListener(
+    "click",
+    async () => {
+
+      if (rolling) {
+        return;
+      }
+
+      if (!myColor) {
+
+        setMessage(
+          "Kamu belum mendapat warna."
+        );
+
+        return;
+
+      }
+
+      if (
+        game.turn !==
+        myColor
+      ) {
+
+        setMessage(
+          `Sekarang giliran ${game.turn.toUpperCase()}.`
+        );
+
+        return;
+
+      }
+
+      if (
+        Number(game.dice || 0) > 0
+      ) {
+
+        setMessage(
+          "Pilih pion terlebih dahulu."
+        );
+
+        return;
+
+      }
+
+      rolling = true;
+
+      rollBtn.disabled =
+        true;
+
+      /*
+       * Animasi dadu.
+       */
+
+      for (
+        let i = 0;
+        i < 9;
+        i++
+      ) {
+
+        const n =
+          Math.floor(
+            Math.random() * 6
+          ) + 1;
+
+        diceEl.textContent =
+          DICE[n];
+
+        await sleep(65);
+
+      }
+
+      /*
+       * Hasil final.
+       */
+
+      const result =
+        Math.floor(
+          Math.random() * 6
+        ) + 1;
+
+      diceEl.textContent =
+        DICE[result];
+
+      /*
+       * Simpan ke Firebase.
+       */
+
+      await update(
+        gameRef,
+        {
+          dice:
+            result
+        }
+      );
+
+      rolling =
+        false;
+
+      rollBtn.disabled =
+        false;
+
+    }
+  );
 
 }
 
 
 // ============================================================
-// CREATE ROOM INITIAL STATE
+// INITIALIZE GAME
+// ============================================================
+
+async function initializeGame() {
+
+  /*
+   * Pastikan game state ada.
+   */
+
+  await runTransaction(
+    gameRef,
+    current => {
+
+      if (current) {
+        return current;
+      }
+
+      return {
+
+        turn:
+          "red",
+
+        dice:
+          0,
+
+        winner:
+          null
+
+      };
+
+    }
+  );
+
+  /*
+   * Pastikan 16 pion ada.
+   */
+
+  await initializePieces();
+
+}
+
+
+// ============================================================
+// START
 // ============================================================
 
 async function start() {
 
   try {
 
-    setMessage(
-      "Menghubungkan ke room..."
-    );
+    /*
+     * Buat 16 elemen pion
+     * LANGSUNG di HOME.
+     */
+
+    createAllPieces();
+
+    /*
+     * Firebase.
+     */
 
     await initializeGame();
 
     await joinRoom();
+
+    if (statusEl) {
+
+      statusEl.textContent =
+        "Connected";
+
+    }
 
     setMessage(
       "Room siap dimainkan."
     );
 
     console.log(
-      "[SAVARI LUDO] Connected",
+      "[SAVARI LUDO] READY",
       ROOM_ID
     );
 
   } catch (error) {
 
     console.error(
-      "[SAVARI LUDO ERROR]",
+      "[SAVARI LUDO]",
       error
     );
 
-    statusEl.textContent =
-      "Connection error";
+    if (statusEl) {
+
+      statusEl.textContent =
+        "Connection error";
+
+    }
 
     setMessage(
       "Gagal menghubungkan ke Firebase."
