@@ -281,28 +281,46 @@ updateTurn();
 
 /* PIECES */
 
+const initialPieces = {
+red: [-1,-1,-1,-1],
+blue: [-1,-1,-1,-1],
+green: [-1,-1,-1,-1],
+yellow: [-1,-1,-1,-1]
+};
+
 onValue(
-piecesRef,
-snap=>{
+  piecesRef,
+  async snap => {
 
-const data=snap.val();
+    const data = snap.val();
 
-if(!data)return;
+    // Kalau pion belum ada, buat 16 pion
+    if (!data) {
 
-colors.forEach(color=>{
+      await set(
+        piecesRef,
+        initialPieces
+      );
 
-if(Array.isArray(data[color])){
+      return;
+    }
 
-pieces[color]=
-data[color].slice(0,4);
+    // Ambil posisi pion dari Firebase
+    colors.forEach(color => {
 
-}
+      if (Array.isArray(data[color])) {
 
-});
+        pieces[color] =
+          data[color].slice(0,4);
 
-renderPieces();
+      }
 
-}
+    });
+
+    renderPieces();
+
+    highlightPieces();
+  }
 );
 
 
