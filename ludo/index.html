@@ -109,3 +109,67 @@
 
         .count {
             text-align: center;
+            margin-top: 18px;
+            color: #aaa;
+        }
+
+        .status {
+            margin-top: 14px;
+            text-align: center;
+            color: #86efac;
+            font-size: 13px;
+        }
+
+        .error {
+            color: #fca5a5;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 20px;
+            color: #777;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="box">
+
+    <div class="logo">
+        SAVARI
+    </div>
+
+    <div class="subtitle">
+        MULTIPLAYER LUDO
+    </div>
+
+    <div class="room">
+        ROOM:
+        <strong id="roomId">---</strong>
+    </div>
+
+    <div class="players-title">
+        👥 PLAYERS
+    </div>
+
+    <div id="players" class="players">
+        <div class="empty">
+            Menunggu pemain...
+        </div>
+    </div>
+
+    <div id="count" class="count">
+        0 / 4 PLAYERS
+    </div>
+
+    <div id="status" class="status">
+        Menghubungkan...
+    </div>
+
+</div>
+
+<script type="module" src="./game.js"></script>
+
+</body>
+</html>
